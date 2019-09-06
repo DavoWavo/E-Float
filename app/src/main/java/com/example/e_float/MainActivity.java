@@ -1,129 +1,261 @@
 package com.example.e_float;
 
-import android.app.ListActivity;
-import android.app.ProgressDialog;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.app.Activity;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.Context;
-import android.os.AsyncTask;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.app.ListActivity;
+import android.bluetooth.BluetoothAdapter;
+import android.os.Handler;
 import android.text.Layout;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.ProgressBar;
+import android.widget.BaseAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import java.io.InputStream;
+import androidx.appcompat.widget.Toolbar;
 import java.util.ArrayList;
 
-public class MainActivity extends ListActivity {
-    private ArrayList<Device> devices = new ArrayList<Device>();
-    private LayoutInflater mInflator;
-    private ProgressDialog progressDialog;
+//Activity for scanning and displaying avaliable BLE devices
+public class MainActivity extends AppCompatActivity {
+    private DeviceScanActivity mDeviceScanActivity;
+    private LayoutInflater mInflater;
     private Context context;
-    ProgressBar progressBar;
+    private Handler mHandler;
+    private BluetoothAdapter mBluetoothAdapter;
 
-    //Called when the activity is first created
-    protected void onCreate(Bundle savedInstanceState) {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        InitializeUI();
+
+        InitializeBLE();
+
+        context = this;
+
+        mDeviceScanActivity = new DeviceScanActivity(mHandler, mBluetoothAdapter, mInflater);
     }
 
-    private void initializeUI(){
-        mInflator = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+    private void InitializeBLE() {
+        Log.d("debugMode", "MainActivity InitializingBLE");
+        mHandler = new Handler();
+
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(this, "BLE is not supported", Toast.LENGTH_SHORT).show();
+            finish();
+        }
+
+        final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        mBluetoothAdapter = bluetoothManager.getAdapter();
+
+        if (!mBluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, 1);
+        }
     }
 
-    class RowIconAdapter extends ArrayAdapter<Device> {
-        private ArrayList<Device> devices;
+    private void InitializeUI() {
+        Log.d("debugMode", "Initializing user interface");
 
-        //view lookup cache
-        public final class ViewHolder {
-            TextView deviceText;
-            TextView deviceStrength;
+        mInflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        Log.d("debugMode", "MainActivity onCreateOptionsMenu entered");
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.toolbar_menu, menu);
+        if (!mDeviceScanActivity.checkScanning()) {
+            menu.findItem(R.id.menu_stop).setVisible(false);
+            menu.findItem(R.id.menu_scan).setVisible(true);
+        } else {
+            menu.findItem(R.id.menu_stop).setVisible(true);
+            menu.findItem(R.id.menu_scan).setVisible(false);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_scan:
+                Log.d("debugMode", "MainActivity onOptionsItemSelected scanning");
+                mDeviceScanActivity.scanBLEDevice(true);
+                break;
+            case R.id.menu_stop:
+                Log.d("debugMode", "MainActivity onOptionsItemSelected stopping");
+                mDeviceScanActivity.scanBLEDevice(false);
+                break;
+        }
+        return true;
+    }
+
+    public class DeviceScanActivity extends ListActivity {
+        private BLEDeviceListAdapter mBLEDeviceListAdapter;
+        private BluetoothAdapter mBluetoothAdapter;
+        private boolean mScanning;
+        private Handler mHandler;
+
+        @Override
+        public void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+
+            Log.d("debugMode", "DeviceScanActivity onCreate entered");
         }
 
-        //movie params cache for asyncTask
-        public final class DeviceParams {
-            String deviceName;
-            int deviceStrength;
+        public DeviceScanActivity(Handler mHandler, BluetoothAdapter mBluetoothAdapter, LayoutInflater mInflater) {
+            this.mHandler = mHandler;
+            this.mBluetoothAdapter = mBluetoothAdapter;
 
-            DeviceParams(String deviceName, int deviceStrength) {
-                this.deviceName = deviceName;
-                this.deviceStrength = deviceStrength;
-            }
+            mBLEDeviceListAdapter = new BLEDeviceListAdapter(mInflater);
+            mBLEDeviceListAdapter.notifyDataSetChanged();
         }
 
-        public RowIconAdapter(Context c, int rowResourceId, int textViewResourceId, ArrayList<Device> items) {
-            super(c, rowResourceId, textViewResourceId, items);
-            devices = items;
+        public boolean checkScanning() {
+            return this.mScanning;
         }
 
-        public View getView(int pos, View convertView, ViewGroup parent) {
-            //get the data item for this position
-            final Device currDevice = devices.get(pos);
+        private void scanBLEDevice(final boolean enable) {
+            Log.d("debugMode", "DeviceScanActivity scanBLEDevice entered");
+            if (enable) {
+                Log.d("debugMode", "DeviceScanActivity scanBLEDevice is enabled");
+                if (mHandler != null) {
+                    mHandler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            Log.d("debugMode", "DeviceScanActivity scanBLEDevice running scan");
+                            mScanning = false;
+                            mBluetoothAdapter.stopLeScan(mBLEScanCallBack);
 
-            //check if an existing view is being reused, otherwise inflate the view
-            final DeviceParams deviceParams;
-            ViewHolder viewHolder;
+                            //invalidateOptionsMenu();
+                        }
+                    }, 10000);
 
-            if (convertView == null) {
-                //if there is no reusable view, inflate a brand new view for the row
-                viewHolder = new ViewHolder();
-
-                LayoutInflater inflater = LayoutInflater.from(getContext());
-                convertView = inflater.inflate(R.layout.device_tile, parent, false);
-
-                viewHolder.deviceText = (TextView) convertView.findViewById(R.id.device_name_tv);
-                viewHolder.deviceStrength = (TextView) convertView.findViewById(R.id.device_strength_tv);
-
-                convertView.setTag(viewHolder);
+                    mScanning = true;
+                    mBluetoothAdapter.startLeScan(mBLEScanCallBack);
+                    Log.d("debugMode", "DeviceScanActivity scanBLEDevice scan complete");
+                } else {
+                    Log.d("debugMode", "DeviceScanActivity scanBLEDevice mHandler  is null");
+                }
             } else {
-                //View is being recycled, retrieve the viewHolder object from tag
-                viewHolder = (ViewHolder) convertView.getTag();
+                Log.d("debugMode", "DeviceScanActivity scanBLEDevice is disabled");
+                mScanning = false;
+                mBluetoothAdapter.stopLeScan(mBLEScanCallBack);
+            }
+            //invalidateOptionsMenu();
+            Log.d("debugMode", "DeviceScanActivity scanBLEDevice scan process finished");
+        }
+
+        private class BLEDeviceListAdapter extends BaseAdapter {
+            private ArrayList<BluetoothDevice> mBLEDevices;
+            private LayoutInflater mInflater;
+
+            public BLEDeviceListAdapter(LayoutInflater mInflater) {
+                super();
+                mBLEDevices = new ArrayList<BluetoothDevice>();
+                this.mInflater = mInflater;
             }
 
-            //putting the data into the view
-            if (currDevice != null) {
-                //populate the data from the data object via the viewHolder object in the template
-                viewHolder.deviceText.setText(currDevice.getName());
-                viewHolder.deviceStrength.setText(currDevice.getStrength());
-
-                //pass into the asyncTask both the name and rating via a wrapper
-                deviceParams = new DeviceParams(currDevice.getName(), currDevice.getStrength());
+            public void addDevice(BluetoothDevice device) {
+                if (!mBLEDevices.contains(device)){
+                    Log.d("debugMode", "DeviceScanActivity device added");
+                    Log.d("debugMode", device.getName());
+                    this.mBLEDevices.add(device);
+                    this.notifyDataSetChanged();
+                }
             }
-            return convertView;
-        }
-    }
 
-    private class LoadingDevices extends AsyncTask<Integer, Integer, ArrayList<Device>> {
-        @Override
-        protected ArrayList<Device> doInBackground(Integer... voids) {
-            ArrayList<Device> devicesLoaded = new ArrayList<Device>();
+            public void clearList() {
+                if (!mBLEDevices.isEmpty())
+                    this.mBLEDevices.clear();
+            }
 
-            //Put the bluetooth device retrival methods here
-            return devicesLoaded;
+            public BluetoothDevice getDevice(int i) {
+                return this.mBLEDevices.get(i);
+            }
+
+            @Override
+            public int getCount() {
+                return this.mBLEDevices.size();
+            }
+
+            @Override
+            public Object getItem(int i) {
+                return this.mBLEDevices.get(i);
+            }
+
+            @Override
+            public long getItemId(int i) {
+                return i;
+            }
+
+            @Override
+            public View getView(int pos, View convertView, ViewGroup parent) {
+                ViewHolder viewHolder;
+
+                Log.d("debugMode", "DeviceScanActivity view updated");
+
+                if (convertView == null) {
+                    convertView = mInflater.inflate(R.layout.ble_device_tile, null);
+
+                    viewHolder = new ViewHolder();
+
+                    viewHolder.deviceAddress = findViewById(R.id.device_address);
+                    viewHolder.deviceName = findViewById(R.id.device_name);
+                    convertView.setTag(viewHolder);
+                } else {
+                    viewHolder = (ViewHolder) convertView.getTag();
+                }
+
+                BluetoothDevice currDevice = this.mBLEDevices.get(pos);
+                if (currDevice != null) {
+                    final String deviceName = currDevice.getName();
+                    if (deviceName != null && deviceName.length() > 0){
+                        viewHolder.deviceName.setText(deviceName);
+                    } else {
+                        viewHolder.deviceName.setText("unknown device");
+                    }
+
+                    viewHolder.deviceAddress.setText(currDevice.getAddress());
+                }
+
+                return convertView;
+            }
         }
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            progressDialog = new ProgressDialog(MainActivity.this);
-            progressDialog.setTitle("Loading...");
-            progressDialog.show();
-        }
+        private BluetoothAdapter.LeScanCallback mBLEScanCallBack = new BluetoothAdapter.LeScanCallback() {
+            @Override
+            public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (device != null) {
+                            mBLEDeviceListAdapter.addDevice(device);
+                            mBLEDeviceListAdapter.notifyDataSetChanged();
+                        }
+                    }
+                });
+            }
+        };
 
-        //update the progress of the dialog
-        @Override
-        protected void onProgressUpdate(Integer... values) {
-            setProgress(values[0]);
+        private final class ViewHolder {
+            TextView deviceName;
+            TextView deviceAddress;
         }
-
-        //removing the dialog box from the view and allocate devices the result of the loading.
-        @Override
-        protected void onPostExecute(ArrayList<Device> devicesLoaded) {
-            devices = devicesLoaded;
-            setListAdapter(new RowIconAdapter(context, R.layout.device_tile, R.id.device_name_tv, devices));
-            progressDialog.dismiss();
-        }
-    }
+    };
 }
