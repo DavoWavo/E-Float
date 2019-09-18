@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -24,6 +25,7 @@ public class DeviceScanningFragment extends Fragment {
     RecyclerView.Adapter mAdapter;
     RecyclerView rvDevices;
 
+    BluetoothDevice mSelectedDevice;
     ArrayList<BluetoothDevice> mDevices;
 
     public DeviceScanningFragment() {
@@ -90,6 +92,14 @@ public class DeviceScanningFragment extends Fragment {
         rvDevices.setAdapter(mAdapter);
     }
 
+    public void ConnectDevice(int position) {
+        MainActivity activity = (MainActivity) getActivity();
+        if (activity != null) {
+            //allocating the selected device back to the main activity to connect to.
+            activity.ConnectDevice(mDevices.get(position));
+        }
+    }
+
     public class RVAdapter extends RecyclerView.Adapter<DeviceScanningFragment.RVAdapter.ViewHolder> {
         ArrayList<BluetoothDevice> mDevices;
 
@@ -106,10 +116,21 @@ public class DeviceScanningFragment extends Fragment {
         }
 
         @Override
-        public void onBindViewHolder(@NonNull DeviceScanningFragment.RVAdapter.ViewHolder holder, int position) {
+        public void onBindViewHolder(@NonNull DeviceScanningFragment.RVAdapter.ViewHolder holder, final int position) {
             BluetoothDevice mDevice = mDevices.get(position);
+
             holder.mName.setText(mDevice.getName());
             holder.mAddress.setText(mDevice.getAddress());
+
+            //TODO set a check to ensure the type of BLE device is a beacon, turn the connect button on or off depending
+
+            holder.mConnectButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Log.d("debugMode", "device connecting...");
+                    ConnectDevice(position);
+                }
+            });
         }
 
         @Override
@@ -123,11 +144,13 @@ public class DeviceScanningFragment extends Fragment {
         class ViewHolder extends RecyclerView.ViewHolder {
             public TextView mName;
             public TextView mAddress;
+            public Button mConnectButton;
 
             public ViewHolder(View view) {
                 super(view);
-                mName = view.findViewById(R.id.device_name);
-                mAddress = view.findViewById(R.id.device_address);
+                mName = view.findViewById(R.id.device_name_tv);
+                mAddress = view.findViewById(R.id.device_address_tv);
+                mConnectButton = view.findViewById(R.id.connect_button);
             }
         }
     }

@@ -2,14 +2,18 @@ package com.example.e_float;
 
 import com.google.android.material.tabs.TabLayout;
 
+import android.app.Service;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothAdapter;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -26,6 +30,7 @@ import java.util.ArrayList;
 //Activity for scanning and displaying avaliable BLE devices
 public class MainActivity extends AppCompatActivity {
     ArrayList<BluetoothDevice> mDevices;
+    BluetoothDevice mSelectedDevice;
     BluetoothAdapter mBluetoothAdapter;
     Boolean mScanning;
     Handler mHandler;
@@ -41,6 +46,12 @@ public class MainActivity extends AppCompatActivity {
 
     public void passUpdateAdapterNotification(DeviceScanningUpdateAdapterListener activityCommander) {
         this.deviceScanningCommander = activityCommander;
+    }
+
+    public void ConnectDevice(BluetoothDevice device) {
+        //Log.d("debugCon", device.getName());
+        //Log.d("debugCon", device.getAddress());
+        mSelectedDevice = device;
     }
 
     @Override
