@@ -1,19 +1,18 @@
 package com.example.e_float;
 
-import android.support.v4.app.Fragment;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.os.Bundle;
-import android.os.Handler;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
@@ -64,6 +63,7 @@ public class DeviceScanningFragment extends Fragment {
         ((MainActivity) getActivity()).passUpdateAdapterNotification(new MainActivity.DeviceScanningUpdateAdapterListener() {
             @Override
             public void RefreshAdapter() {
+                Log.d("debugMode", "RecyclerView adapter refreshed");
                 mAdapter.notifyDataSetChanged();
             }
 
@@ -71,7 +71,6 @@ public class DeviceScanningFragment extends Fragment {
             public void AddDevice(BluetoothDevice device) {
                 Log.d("debugMode", device.getName());
                 mDevices.add(device);
-                mAdapter.notifyDataSetChanged();
             }
         });
 
@@ -82,7 +81,7 @@ public class DeviceScanningFragment extends Fragment {
 
     public void initializeRecyclerViewUI(View view) {
         //RecyclerView layout manager
-        rvDevices = (RecyclerView) view.findViewById(R.id.rvDevices);
+        rvDevices = (RecyclerView) view.findViewById(R.id.rv_Devices);
         mLayoutManager = new LinearLayoutManager(this.getActivity());
         rvDevices.setLayoutManager(mLayoutManager);
 

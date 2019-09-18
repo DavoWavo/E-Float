@@ -2,20 +2,21 @@ package com.example.e_float;
 
 import android.content.Context;
 
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentPagerAdapter;
-
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentPagerAdapter;
 /**
  * A [FragmentPagerAdapter] that returns a fragment corresponding to
  * one of the sections/tabs/pages.
  */
 public class CustomPagerAdapter extends FragmentPagerAdapter {
 
-    private static int NUM_ITEMS = 1;
+    private static int NUM_ITEMS = 3;
+    private final Context mContext;
 
-    public CustomPagerAdapter(FragmentManager fragmentManager) {
+    public CustomPagerAdapter(Context context, FragmentManager fragmentManager) {
         super(fragmentManager);
+        mContext = context;
     }
 
     @Override
@@ -24,10 +25,10 @@ public class CustomPagerAdapter extends FragmentPagerAdapter {
         switch (position) {
             case 0:
                 return DeviceScanningFragment.newInstance(0, "Scan Device");
-            //case 1:
-
-            //case 2:
-
+            case 1:
+                return BeaconFragment.newInstance(1, "Beacon");
+            case 2:
+                return RelayFragment.newInstance(2, "Relay");
             default:
                 return null;
         }
@@ -37,11 +38,11 @@ public class CustomPagerAdapter extends FragmentPagerAdapter {
     public CharSequence getPageTitle(int position) {
         switch (position) {
             case 0:
-                return ""; //near
-            //case 1:
-            //    return ""; //beacn
-            //case 2:
-            //    return ""; //rlay
+                return "Near";
+            case 1:
+                return "Beacon";
+            case 2:
+                return "Relay";
             default:
                 return ""; //better than returning null... avoid potential crashing
         }

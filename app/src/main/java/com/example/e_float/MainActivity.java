@@ -1,47 +1,39 @@
 package com.example.e_float;
 
-import android.support.annotation.NonNull;
-import android.support.v4.app.FragmentPagerAdapter;
-import android.support.v4.view.ViewPager;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.LinearLayoutManager;
+import com.google.android.material.tabs.TabLayout;
+
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.bluetooth.BluetoothAdapter;
 import android.os.Handler;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
+
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.viewpager.widget.ViewPager;
+import androidx.appcompat.widget.Toolbar;
 
 import java.util.ArrayList;
 
 //Activity for scanning and displaying avaliable BLE devices
 public class MainActivity extends AppCompatActivity {
-    //RecyclerView.LayoutManager mLayoutManager;
-    //RecyclerView.Adapter mAdapter;
-    //RecyclerView rvDevices;
     ArrayList<BluetoothDevice> mDevices;
     BluetoothAdapter mBluetoothAdapter;
     Boolean mScanning;
     Handler mHandler;
 
-    //CustomPagerAdapter pagerAdapter;
-    FragmentPagerAdapter adapterViewPager;
+    CustomPagerAdapter customPagerAdapter;
 
+    //interfaces to fragments
     DeviceScanningUpdateAdapterListener deviceScanningCommander;
-
     public interface DeviceScanningUpdateAdapterListener {
         public void RefreshAdapter();
         public void AddDevice(BluetoothDevice device);
@@ -68,22 +60,17 @@ public class MainActivity extends AppCompatActivity {
         Log.d("debugMode", "Initializing user interface");
 
         //Toolbar
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         //PageAdapter
-        ViewPager viewPager = (ViewPager) findViewById(R.id.pager);
-        adapterViewPager = new CustomPagerAdapter(getSupportFragmentManager());
-        viewPager.setAdapter(adapterViewPager);
+        customPagerAdapter = new CustomPagerAdapter(this, getSupportFragmentManager());
+        ViewPager viewPager = (ViewPager) findViewById(R.id.view_pager);
+        viewPager.setAdapter(customPagerAdapter);
 
-        //RecyclerView layout manager
-        //rvDevices = findViewById(R.id.rvDevices);
-        //mLayoutManager = new LinearLayoutManager(this);
-        //rvDevices.setLayoutManager(mLayoutManager);
-
-        //RecyclerView Adapter
-        //mAdapter = new RVAdapter(mDevices);
-        //rvDevices.setAdapter(mAdapter);
+        //PageAdapter tabs
+        TabLayout tabs = findViewById(R.id.tabs);
+        tabs.setupWithViewPager(viewPager);
     }
 
     private void InitializeBLE() {
@@ -108,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         //Log.d("debugMode", "MainActivity onCreateOptionsMenu entered");
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.toolbar_menu, menu);
+        inflater.inflate(R.menu.main_menu, menu);
         if (!mScanning) {
             menu.findItem(R.id.menu_stop).setVisible(false);
             menu.findItem(R.id.menu_scan).setVisible(true);
@@ -142,10 +129,8 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     if (device != null) {
                         if (!mDevices.contains(device)) {
-                            //Log.d("debugMode", device.getName());
-                            //mDevices.add(device);
                             deviceScanningCommander.AddDevice(device);
-                            //deviceScanningCommander.RefreshAdapter();
+                            deviceScanningCommander.RefreshAdapter();
                         }
                     }
                 }

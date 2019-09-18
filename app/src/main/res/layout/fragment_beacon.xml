@@ -1,4 +1,3 @@
-
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -6,8 +5,7 @@
     android:id="@+id/constraintLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/holo_orange_dark"
-    tools:context=".ui.main.PlaceholderFragment">
+    android:background="@android:color/holo_green_dark">
 
     <TextView
         android:id="@+id/section_label"
@@ -22,7 +20,7 @@
         app:layout_constraintTop_toTopOf="@+id/constraintLayout"
         tools:layout_constraintLeft_creator="1"
         tools:layout_constraintTop_creator="1"
-        android:text=" this is where you can see relay"/>
+        android:text="this is where you can see all connected beacons"/>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

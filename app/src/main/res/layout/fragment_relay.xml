@@ -5,8 +5,7 @@
     android:id="@+id/constraintLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/holo_green_dark"
-    tools:context=".ui.main.PlaceholderFragment">
+    android:background="@android:color/holo_orange_dark">
 
     <TextView
         android:id="@+id/section_label"
@@ -21,7 +20,7 @@
         app:layout_constraintTop_toTopOf="@+id/constraintLayout"
         tools:layout_constraintLeft_creator="1"
         tools:layout_constraintTop_creator="1"
-        android:text=" this is where you can see all connected beacons"/>
+        android:text=" this is where you can see relay"/>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
