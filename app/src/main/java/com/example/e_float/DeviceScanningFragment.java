@@ -62,7 +62,7 @@ public class DeviceScanningFragment extends Fragment {
         }
 
         //listening for changes from the main activity
-        ((MainActivity) getActivity()).passUpdateAdapterNotification(new MainActivity.DeviceScanningUpdateAdapterListener() {
+        ((MainActivity) getActivity()).UpdateScanningAdapterNotification(new MainActivity.DeviceScanningUpdateAdapterListener() {
             @Override
             public void RefreshAdapter() {
                 Log.d("debugMode", "RecyclerView adapter refreshed");
