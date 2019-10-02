@@ -2,6 +2,7 @@ package com.example.e_float;
 
 import com.google.android.material.tabs.TabLayout;
 
+import android.Manifest;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothAdapter;
@@ -24,6 +25,8 @@ import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 import androidx.appcompat.widget.Toolbar;
@@ -33,6 +36,13 @@ import java.util.List;
 
 //Activity for scanning and displaying avaliable BLE devices
 public class MainActivity extends AppCompatActivity {
+    enum ConnectStatus {
+        CONNECTED,
+        DISCONNECTED,
+        DEPLOYED,
+        TETHERED
+    }
+
     ArrayList<BluetoothDevice> mDevices;
     BluetoothDevice mSelectedDevice;
     BluetoothAdapter mBluetoothAdapter;
@@ -41,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     Boolean mScanning;
     Boolean mConnected = false;
     Handler mHandler;
+    ConnectStatus mConnectStatus;
 
     ViewPager viewPager;
     FragmentPagerAdapter adapterViewPager;
@@ -52,10 +63,8 @@ public class MainActivity extends AppCompatActivity {
     BeaconFragmentListener beaconFragmentCommander;
     public interface BeaconFragmentListener {
         public void updateDeviceParams(BluetoothDevice device);
-        public void displayGattServices(List<BluetoothGattService> gattService);
-        public void displayData(String data);
-        public void clearUi();
         public void updateConnectionState(int connection);
+        public void updateConnectionImage(int connection);
     }
     public void UpdateConnnectionAdapterNotification(BeaconFragmentListener activityCommander) {
         this.beaconFragmentCommander = activityCommander;
@@ -98,7 +107,6 @@ public class MainActivity extends AppCompatActivity {
     // Handles various events fired by the Service.
     // ACTION_GATT_CONNECTED: connected to a GATT server.
     // ACTION_GATT_DISCONNECTED: disconnected from a GATT server.
-    // ACTION_GATT_SERVICES_DISCOVERED: discovered GATT services.
     // ACTION_DATA_AVAILABLE: received data from the device.  This can be a result of read
     //                        or notification operations.
     private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
@@ -109,26 +117,22 @@ public class MainActivity extends AppCompatActivity {
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
                 mConnected = true;
                 beaconFragmentCommander.updateDeviceParams(mSelectedDevice);
-                beaconFragmentCommander.updateConnectionState(R.string.connected);
+                //beaconFragmentCommander.updateConnectionState(R.string.connected);
+                CurrentConnectionStatus(ConnectStatus.CONNECTED);
                 Log.d("debugCon", "BLE service GATT connected");
                 invalidateOptionsMenu();
                 toastMaker("BLE service connected");
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
                 mConnected = false;
-                beaconFragmentCommander.updateConnectionState(R.string.disconnected);
+                if (mConnectStatus.equals(ConnectStatus.DEPLOYED))
+                    CurrentConnectionStatus(ConnectStatus.TETHERED);
+                else
+                    CurrentConnectionStatus(ConnectStatus.DISCONNECTED);
+
+                //beaconFragmentCommander.updateConnectionState(R.string.disconnected);
                 Log.d("debugCon", "BLE service GATT disconnected");
                 invalidateOptionsMenu();
                 toastMaker("BLE service disconnected");
-                beaconFragmentCommander.clearUi();
-            } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
-                // Show all the supported services and characteristics on the user interface.
-                beaconFragmentCommander.displayGattServices(mBluetoothBLEService.getSupportedGattServices());
-                invalidateOptionsMenu();
-                Log.d("debugCon", "BLE service GATT service discovered");
-            } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
-                beaconFragmentCommander.displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
-                invalidateOptionsMenu();
-                Log.d("debugCon", "BLE service GATT Data");
             }
         }
     };
@@ -137,6 +141,22 @@ public class MainActivity extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //checking application permissions - course location
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            //Permission is not granted
+            if (!ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_COARSE_LOCATION}, 0);
+            }
+        }
+
+        //checking application permissions - fine location
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            //Permission is not granted
+            if (!ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
+                ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 0);
+            }
+        }
 
         mScanning = false;
         mDevices = new ArrayList<>();
@@ -195,7 +215,6 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
         if (mBluetoothBLEService != null) {
             final boolean result = mBluetoothBLEService.connect(mSelectedDevice.getAddress());
-            Log.d("debugCon", "Connect request result=" + result);
         } else {
             Log.d("debugCon", "onResume Unable to find service");
         }
@@ -318,6 +337,7 @@ public class MainActivity extends AppCompatActivity {
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        intentFilter.addAction(BluetoothLeService.EXTRA_DATA);
         return intentFilter;
     }
 
@@ -334,7 +354,34 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void toastMaker(String condiment) {
+    public void toastMaker(String condiment) {
         Toast.makeText(this, condiment, Toast.LENGTH_SHORT).show();
+    }
+
+    public void CurrentConnectionStatus(ConnectStatus status) {
+        //if the status has changed, then update the status
+        if (status != mConnectStatus) {
+            mConnectStatus = status;
+            switch (mConnectStatus) {
+                case CONNECTED:
+                    beaconFragmentCommander.updateConnectionState(R.string.connected);
+                    beaconFragmentCommander.updateConnectionImage(R.drawable.connected);
+                    break;
+                case DISCONNECTED:
+                    beaconFragmentCommander.updateConnectionState(R.string.disconnected);
+                    beaconFragmentCommander.updateConnectionImage(R.drawable.disconnected);
+                    break;
+                case DEPLOYED:
+                    beaconFragmentCommander.updateConnectionState(R.string.deployed);
+                    beaconFragmentCommander.updateConnectionImage(R.drawable.deploy);
+                    break;
+                case TETHERED:
+                    beaconFragmentCommander.updateConnectionState(R.string.tethered);
+                    beaconFragmentCommander.updateConnectionImage(R.drawable.tether);
+                    break;
+            }
+            invalidateOptionsMenu();
+        }
+
     }
 }

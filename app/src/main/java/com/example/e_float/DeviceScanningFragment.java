@@ -54,7 +54,7 @@ public class DeviceScanningFragment extends Fragment {
         //Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragement_device_scanning, container, false);
 
-        MainActivity activity = (MainActivity) getActivity();
+        final MainActivity activity = (MainActivity) getActivity();
         mDevices = new ArrayList<>();
 
         if (activity != null) {
@@ -71,8 +71,10 @@ public class DeviceScanningFragment extends Fragment {
 
             @Override
             public void AddDevice(BluetoothDevice device) {
-                Log.d("debugMode", device.getName());
-                mDevices.add(device);
+                if (device.getName() != null) {
+                    Log.d("debugMode", device.getName());
+                    mDevices.add(device);
+                }
             }
         });
 
