@@ -297,7 +297,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case R.id.menu_connect:
                 if (mSelectedDevice != null)
-                    ConnectDevice(mSelectedDevice);
+                    ConnectDevice();
                 else
                     toastMaker("BLE device not selected");
                 break;
@@ -363,12 +363,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //Called from the Device scanning fragment, this will attempt to connect to the BLE device
-    public void ConnectDevice(BluetoothDevice device) {
-        mSelectedDevice = device;
+    public void ConnectDevice() {
         if (mBluetoothBLEService != null) {
-            final boolean result = mBluetoothBLEService.connect(device.getAddress());
-            beaconFragmentCommander.updateSelectedDeviceParams(mSelectedDevice);
-            CurrentConnectionStatus(ConnectStatus.CONNECTED);
+            if (mSelectedDevice != null) {
+                final boolean result = mBluetoothBLEService.connect(mSelectedDevice.getAddress());
+                beaconFragmentCommander.updateSelectedDeviceParams(mSelectedDevice);
+                Log.d("debugCon", "connectiong request result = " + result);
+                CurrentConnectionStatus(ConnectStatus.CONNECTED);
+            }
         } else {
             toastMaker("No BLE Service available");
             Log.d("debugCon", "No BLE Service available");
