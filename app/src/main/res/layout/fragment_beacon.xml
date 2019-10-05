@@ -39,23 +39,22 @@
             android:text=": "
             android:textSize="18sp"/>
     </LinearLayout>
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
+        android:layout_height="match_parent"
+        android:gravity="center">
         <ImageView
             android:id="@+id/connection_status_image"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:scaleType="center"
+            android:scaleType="fitCenter"
             android:src="@drawable/disconnected" />
-    </LinearLayout>
-    <LinearLayout
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
-    <Button android:id="@+id/deploy_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Deploy"/>
-    </LinearLayout>
+        <Button android:id="@+id/deploy_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/deploy"
+            android:gravity="center"
+            android:layout_marginTop="20dp"
+            android:layout_below="@+id/connection_status_image"/>
+    </RelativeLayout>
 </LinearLayout>

@@ -53,7 +53,16 @@ public class BeaconFragment extends Fragment {
         activity = (MainActivity) getActivity();
 
         ((MainActivity) getActivity()).UpdateConnnectionAdapterNotification(new MainActivity.BeaconFragmentListener() {
-            //probably not needed now
+            @Override
+            public void setButtonText(int resourceId) {
+                SetButtonText(resourceId);
+            }
+
+            @Override
+            public void hideDeployButton(Boolean hide) {
+                HideDeployButton(hide);
+            }
+
             @Override
             public void updateSelectedDeviceParams(BluetoothDevice device) {
                 UpdateSelectedDeviceParams(device);
@@ -90,11 +99,15 @@ public class BeaconFragment extends Fragment {
         mConnectionState = view.findViewById(R.id.connection_state);
 
         mDeployButton = (Button) view.findViewById(R.id.deploy_button);
+
         mDeployButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (activity.mConnectStatus.equals(MainActivity.ConnectStatus.CONNECTED)) {
                     activity.toastMaker("Device deployed");
                     activity.DeployDevice();
+                } else if (activity.mConnectStatus.equals(MainActivity.ConnectStatus.TETHERED)) {
+                    activity.toastMaker("Tether dismissed");
+                    activity.DismissTether();
                 }
             }
         });
@@ -104,6 +117,19 @@ public class BeaconFragment extends Fragment {
         return view;
     }
 
+    private void SetButtonText(final int resourceId) {
+        mDeployButton.setText(resourceId);
+    }
+
+    private void HideDeployButton(Boolean hide) {
+        if (hide) {
+            mDeployButton.setVisibility(View.INVISIBLE);
+            mDeployButton.setEnabled(false);
+        } else {
+            mDeployButton.setVisibility(View.VISIBLE);
+            mDeployButton.setEnabled(true);
+        }
+    }
 
     private void UpdateSelectedDeviceParams(BluetoothDevice device) {
         if (device != null) {

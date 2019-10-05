@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     BluetoothLeService mBluetoothBLEService;
     Intent enableBtIntent;
     Boolean mScanning;
+    Boolean mConnect = false;
     Handler mHandler;
 
     ViewPager viewPager;
@@ -65,6 +66,8 @@ public class MainActivity extends AppCompatActivity {
     //interfaces to device connection fragment
     BeaconFragmentListener beaconFragmentCommander;
     public interface BeaconFragmentListener {
+        public void setButtonText(int resourceId);
+        public void hideDeployButton(Boolean hide);
         public void updateSelectedDeviceParams(BluetoothDevice device);
         public void updateConnectionState(int connection);
         public void updateConnectionImage(int connection);
@@ -117,19 +120,19 @@ public class MainActivity extends AppCompatActivity {
             Log.d("debugFlow", "onReceive");
             final String action = intent.getAction();
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
+                mConnect = true;
                 beaconFragmentCommander.updateSelectedDeviceParams(mSelectedDevice);
-                CurrentConnectionStatus(ConnectStatus.CONNECTED);
-                Log.d("debugCon", "BLE service GATT connected");
+                if (!mConnectStatus.equals(ConnectStatus.TETHERED))
+                    CurrentConnectionStatus(ConnectStatus.CONNECTED);
                 invalidateOptionsMenu();
                 toastMaker("BLE service connected");
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
-                Log.d("debugCon", "asdasdasd");
+                mConnect = false;
                 if (mConnectStatus.equals(ConnectStatus.DEPLOYED)) {
                     TetherDevice();
                     toastMaker("Device tethered to fish");
                 } else {
-                    DisconnectDevice(mSelectedDevice);
-                    Log.d("debugCon", "BLE service GATT disconnected");
+                    DisconnectDevice();
                     toastMaker("BLE service disconnected");
                 }
             }
@@ -165,11 +168,8 @@ public class MainActivity extends AppCompatActivity {
         InitializeBLE();
 
         //initializing the BLE gatt service
-        Log.d("debugCon", "Binding service 1");
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
-        Log.d("debugCon", "Binding service 2");
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
-        Log.d("debugCon", "Binding service 3");
     }
 
     private void InitializeUI() {
@@ -216,6 +216,8 @@ public class MainActivity extends AppCompatActivity {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, 1);
         }
+
+        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
     }
 
     @Override
@@ -302,7 +304,7 @@ public class MainActivity extends AppCompatActivity {
                     toastMaker("BLE device not selected");
                 break;
             case R.id.menu_disconnect:
-                DisconnectDevice(mSelectedDevice);
+                DropDevice();
                 break;
             case R.id.menu_undeploy:
                 UndeployDevice();
@@ -356,9 +358,6 @@ public class MainActivity extends AppCompatActivity {
         final IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
-        intentFilter.addAction(BluetoothLeService.EXTRA_DATA);
         return intentFilter;
     }
 
@@ -377,9 +376,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void DisconnectDevice(BluetoothDevice device) {
+    public void DisconnectDevice() {
         //checking to make sure there isn't nothing to disconnect from
-        if (device != null) {
+        CurrentConnectionStatus(ConnectStatus.DISCONNECTED);
+    }
+
+    //this kills the device connection
+    public void DropDevice() {
+        //checking to make sure there isn't nothing to disconnect from
+        if (mSelectedDevice != null) {
             //checking that device isn't connected already
             if (!mConnectStatus.equals(ConnectStatus.DISCONNECTED)) {
                 mBluetoothBLEService.disconnect();
@@ -420,6 +425,13 @@ public class MainActivity extends AppCompatActivity {
         CurrentConnectionStatus(ConnectStatus.TETHERED);
     }
 
+    public void DismissTether() {
+        if (mConnect)
+            CurrentConnectionStatus(ConnectStatus.DEPLOYED);
+        else
+            CurrentConnectionStatus(ConnectStatus.DISCONNECTED);
+    }
+
     public void toastMaker(String condiment) {
         Toast.makeText(this, condiment, Toast.LENGTH_SHORT).show();
     }
@@ -430,17 +442,23 @@ public class MainActivity extends AppCompatActivity {
         //if the status has changed, then update the status
         if (status != mConnectStatus) {
             mConnectStatus = status;
+            beaconFragmentCommander.hideDeployButton(true);
             switch (mConnectStatus) {
                 case EMPTY:
-                    //TODO: implement a screen telling user to select a device
                     state = "empty";
+                    beaconFragmentCommander.updateConnectionState(R.string.select_device);
+                    beaconFragmentCommander.updateConnectionImage(R.drawable.disconnected);
                     break;
                 case SELECTED:
                     state  = "selected";
+                    beaconFragmentCommander.updateConnectionState(R.string.disconnected);
+                    beaconFragmentCommander.updateConnectionImage(R.drawable.disconnected);
                     break;
                 case CONNECTED:
                     beaconFragmentCommander.updateConnectionState(R.string.connected);
                     beaconFragmentCommander.updateConnectionImage(R.drawable.connected);
+                    beaconFragmentCommander.setButtonText(R.string.deploy);
+                    beaconFragmentCommander.hideDeployButton(false);
                     state = "connected";
                     break;
                 case DISCONNECTED:
@@ -456,6 +474,8 @@ public class MainActivity extends AppCompatActivity {
                 case TETHERED:
                     beaconFragmentCommander.updateConnectionState(R.string.tethered);
                     beaconFragmentCommander.updateConnectionImage(R.drawable.tether);
+                    beaconFragmentCommander.setButtonText(R.string.dismiss);
+                    beaconFragmentCommander.hideDeployButton(false);
                     state = "tethered";
                     break;
             }
