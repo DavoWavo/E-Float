@@ -18,9 +18,9 @@ public class CustomPagerAdapter extends FragmentPagerAdapter {
     public Fragment getItem(int position) {
         switch (position) {
             case 0:
-                return DeviceScanningFragment.newInstance(0, "Nearby Devices");
+                return DeviceScanningFragment.newInstance(0, "Find my Float");
             case 1:
-                return BeaconFragment.newInstance(1, "Connected Devices");
+                return BeaconFragment.newInstance(1, "Paired Float");
             default:
                 return null;
         }
@@ -31,10 +31,10 @@ public class CustomPagerAdapter extends FragmentPagerAdapter {
         switch (position) {
             case 0:
                 Log.d("debugAdapter", "page 1");
-                return "Nearby Devices";
+                return "Find my Float";
             case 1:
                 Log.d("debugAdapter", "page 2");
-                return "Connected Devices";
+                return "Paired Float";
             default:
                 return null;
         }

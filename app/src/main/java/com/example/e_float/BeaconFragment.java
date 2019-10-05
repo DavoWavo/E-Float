@@ -1,8 +1,5 @@
 package com.example.e_float;
 
-import android.app.Activity;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothDevice;
 import android.os.Bundle;
 import android.util.Log;
@@ -10,27 +7,15 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ExpandableListView;
 import android.widget.ImageView;
-import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
 public class BeaconFragment extends Fragment {
     private String pageTitle;
     private int pageNum;
-    private BluetoothDevice mSelectedDevice;
-    private ExpandableListView mGattServicesList;
-    //private BluetoothLeService mBluetoothBLEService;
-    //private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
-    private boolean mConnected = false;
-    private BluetoothGattCharacteristic mNotifyCharacteristic;
 
     private TextView mDeviceName;
     private TextView mDeviceAddress;
@@ -70,8 +55,8 @@ public class BeaconFragment extends Fragment {
         ((MainActivity) getActivity()).UpdateConnnectionAdapterNotification(new MainActivity.BeaconFragmentListener() {
             //probably not needed now
             @Override
-            public void updateDeviceParams(BluetoothDevice device) {
-                UpdateDeviceParams(device);
+            public void updateSelectedDeviceParams(BluetoothDevice device) {
+                UpdateSelectedDeviceParams(device);
             }
 
             @Override
@@ -109,7 +94,7 @@ public class BeaconFragment extends Fragment {
             public void onClick(View v) {
                 if (activity.mConnectStatus.equals(MainActivity.ConnectStatus.CONNECTED)) {
                     activity.toastMaker("Device deployed");
-                    activity.CurrentConnectionStatus(MainActivity.ConnectStatus.DEPLOYED);
+                    activity.DeployDevice();
                 }
             }
         });
@@ -120,11 +105,13 @@ public class BeaconFragment extends Fragment {
     }
 
 
-    private void UpdateDeviceParams(BluetoothDevice device) {
-        mSelectedDevice = device;
+    private void UpdateSelectedDeviceParams(BluetoothDevice device) {
         if (device != null) {
             mDeviceName.setText(device.getName());
             mDeviceAddress.setText(device.getAddress());
+        } else {
+            mDeviceName.setText(R.string.nil);
+            mDeviceAddress.setText(R.string.nil);
         }
     }
 

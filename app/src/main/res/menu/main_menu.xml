@@ -2,19 +2,23 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item   android:id="@+id/menu_scan"
-        android:title="scan"
+        android:title="@string/menu_scan"
         android:orderInCategory="100"
         app:showAsAction="ifRoom|withText"/>
     <item   android:id="@+id/menu_stop"
-        android:title="stop"
+        android:title="@string/menu_stop"
         android:orderInCategory="101"
         app:showAsAction="ifRoom|withText"/>
     <item   android:id="@+id/menu_connect"
-        android:title="connect"
+        android:title="@string/menu_connect"
         android:orderInCategory="102"
         app:showAsAction="ifRoom|withText"/>
     <item   android:id="@+id/menu_disconnect"
-        android:title="disconnect"
+        android:title="@string/menu_disconnect"
+        android:orderInCategory="103"
+        app:showAsAction="ifRoom|withText"/>
+    <item   android:id="@+id/menu_undeploy"
+        android:title="@string/menu_undeploy"
         android:orderInCategory="103"
         app:showAsAction="ifRoom|withText"/>
 

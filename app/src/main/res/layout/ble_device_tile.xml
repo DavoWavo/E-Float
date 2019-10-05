@@ -3,16 +3,27 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
-        <TextView android:id="@+id/device_name_tv"
+
+        <TableLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="24dp"/>
-        <TextView android:id="@+id/device_address_tv"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="12dp"/>
-        <Button android:id="@+id/connect_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="connect"/>
+            android:stretchColumns="0"
+            android:gravity="center"
+            android:padding="5dp">
+                <TableRow
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@color/colorAccent">
+                <TextView android:id="@+id/device_name_tv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="24dp"
+                    android:layout_marginLeft="4dp"/>
+                <Button android:id="@+id/connect_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/select"/>
+                </TableRow>
+        </TableLayout>
+
 </LinearLayout>

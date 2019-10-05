@@ -20,6 +20,7 @@ import java.util.ArrayList;
 public class DeviceScanningFragment extends Fragment {
     private String pageTitle;
     private int pageNum;
+    private MainActivity activity;
 
     RecyclerView.LayoutManager mLayoutManager;
     RecyclerView.Adapter mAdapter;
@@ -54,7 +55,7 @@ public class DeviceScanningFragment extends Fragment {
         //Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragement_device_scanning, container, false);
 
-        final MainActivity activity = (MainActivity) getActivity();
+        activity = (MainActivity) getActivity();
         mDevices = new ArrayList<>();
 
         if (activity != null) {
@@ -94,12 +95,14 @@ public class DeviceScanningFragment extends Fragment {
         rvDevices.setAdapter(mAdapter);
     }
 
-    public void ConnectDevice(int position) {
-        MainActivity activity = (MainActivity) getActivity();
-        if (activity != null) {
-            //allocating the selected device back to the main activity to connect to.
-            activity.ConnectDevice(mDevices.get(position));
-        }
+    public void SelectDevice(int position) {
+        if (activity != null)
+            activity.SelectDevice(mDevices.get(position));
+    }
+
+    public void UnselectDevice() {
+        if (activity != null)
+            activity.UnselectDevice();
     }
 
     public class RVAdapter extends RecyclerView.Adapter<DeviceScanningFragment.RVAdapter.ViewHolder> {
@@ -118,19 +121,33 @@ public class DeviceScanningFragment extends Fragment {
         }
 
         @Override
-        public void onBindViewHolder(@NonNull DeviceScanningFragment.RVAdapter.ViewHolder holder, final int position) {
+        public void onBindViewHolder(@NonNull final DeviceScanningFragment.RVAdapter.ViewHolder holder, final int position) {
             BluetoothDevice mDevice = mDevices.get(position);
 
             holder.mName.setText(mDevice.getName());
-            holder.mAddress.setText(mDevice.getAddress());
 
-            //TODO set a check to ensure the type of BLE device is a beacon, turn the connect button on or off depending
+            //ensuring you can only connect to eFloats
+            if (mDevice.getName().equals("eFloat")) {
+                holder.mConnectButton.setVisibility(View.VISIBLE);
+                holder.mConnectButton.setEnabled(true);
+            } else {
+                holder.mConnectButton.setVisibility(View.INVISIBLE);
+                holder.mConnectButton.setEnabled(false);
+            }
 
             holder.mConnectButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Log.d("debugMode", "device connecting...");
-                    ConnectDevice(position);
+                    //changing the text within the buttons
+                    if (activity.mConnectStatus.equals(MainActivity.ConnectStatus.EMPTY)) {
+                        SelectDevice(position);
+                        holder.mConnectButton.setText(R.string.unselect);
+                        notifyDataSetChanged();
+                    } else {
+                        UnselectDevice();
+                        holder.mConnectButton.setText(R.string.select);
+                        notifyDataSetChanged();
+                    }
                 }
             });
         }
@@ -145,13 +162,11 @@ public class DeviceScanningFragment extends Fragment {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             public TextView mName;
-            public TextView mAddress;
             public Button mConnectButton;
 
             public ViewHolder(View view) {
                 super(view);
                 mName = view.findViewById(R.id.device_name_tv);
-                mAddress = view.findViewById(R.id.device_address_tv);
                 mConnectButton = view.findViewById(R.id.connect_button);
             }
         }
