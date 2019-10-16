@@ -35,8 +35,18 @@ import androidx.appcompat.widget.Toolbar;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+* <h1>Main action</h1>
+* This class is the main portion of the software and handles all the back end work of the mobile system
+*	
+* @author David Fitzsimmons
+* @version 1.2
+* @since 2019-10-5
+*/
+
 //Activity for scanning and displaying avaliable BLE devices
 public class MainActivity extends AppCompatActivity {
+	//enum for different connection states
     enum ConnectStatus {
         EMPTY,
         SELECTED,
@@ -46,8 +56,10 @@ public class MainActivity extends AppCompatActivity {
         TETHERED
     }
 
+	//current connection status
     ConnectStatus mConnectStatus = ConnectStatus.EMPTY;
 
+	//Bluetooth related variables
     ArrayList<BluetoothDevice> mDevices;
     BluetoothDevice mSelectedDevice;
     BluetoothAdapter mBluetoothAdapter;
@@ -57,14 +69,18 @@ public class MainActivity extends AppCompatActivity {
     Boolean mConnect = false;
     Handler mHandler;
 
+	//fragment handler
     ViewPager viewPager;
     FragmentPagerAdapter adapterViewPager;
 
+	//list for ble characteristics, not used but remain for future functionality
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
     private BluetoothGattCharacteristic mNotifyCharacteristic;
 
-    //interfaces to device connection fragment
-    BeaconFragmentListener beaconFragmentCommander;
+    /**
+	* interfaces to device connection fragment
+    */
+	BeaconFragmentListener beaconFragmentCommander;
     public interface BeaconFragmentListener {
         public void setButtonText(int resourceId);
         public void hideDeployButton(Boolean hide);
@@ -76,8 +92,10 @@ public class MainActivity extends AppCompatActivity {
         this.beaconFragmentCommander = activityCommander;
     }
 
-    //interfaces to device scanning fragment
-    DeviceScanningUpdateAdapterListener deviceScanningCommander;
+    /**
+	* interfaces to device scanning fragment
+    */
+	DeviceScanningUpdateAdapterListener deviceScanningCommander;
     public interface DeviceScanningUpdateAdapterListener {
         public void RefreshAdapter();
         public void AddDevice(BluetoothDevice device);
@@ -139,6 +157,9 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+	/**
+	* Called to do initial creation of the activity
+	*/
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -172,6 +193,9 @@ public class MainActivity extends AppCompatActivity {
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
+	/**
+	* This method initializes the UI elements
+	*/
     private void InitializeUI() {
         Log.d("debugMode", "Initializing user interface");
 
@@ -189,10 +213,14 @@ public class MainActivity extends AppCompatActivity {
         tabs.setupWithViewPager(viewPager);
     }
 
+	/**
+	* This method initializes the BLE elements
+	*/
     private void InitializeBLE() {
         Log.d("debugMode", "MainActivity InitializingBLE");
         mHandler = new Handler();
 
+		//checking the system for BLE support
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             toastMaker("BLUE is not supported");
             finish();
@@ -207,6 +235,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+	/**
+	* Makes the activity begin interacting with the user after the activity was paused
+	*/
     @Override
     protected void onResume() {
         super.onResume();
@@ -220,6 +251,9 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
     }
 
+	/**
+	* Used for unregistering the reciever when the activity is paused
+	*/
     @Override
     protected void onPause() {
         super.onPause();
@@ -236,6 +270,9 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+	/**
+	* Unbinding the service when the activity is destroyed
+	*/
     @Override
     protected void onDestroy() {
         Log.d("debugFlow", "onDestroy");
@@ -243,7 +280,11 @@ public class MainActivity extends AppCompatActivity {
         unbindService(mServiceConnection);
         mBluetoothBLEService = null;
     }
-
+	
+	/**
+	* creates an instance of the options menu and changing what is displayed 
+	* depending on the connection state and current visible fragment
+	*/
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
@@ -284,6 +325,9 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+	/**
+	* This method handles the options being selected within the action bar
+	*/
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -313,8 +357,11 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    //This method adds the devices to the displayed discovered device list on the Scanning fragment
-    private BluetoothAdapter.LeScanCallback mBLEScanCallBack = new BluetoothAdapter.LeScanCallback() {
+    /**
+	* Device scan callback.
+	* This method adds the devices to the displayed discovered device list on the Scanning fragment
+    */
+	private BluetoothAdapter.LeScanCallback mBLEScanCallBack = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
             runOnUiThread(new Runnable() {
@@ -331,6 +378,11 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+	/**
+	* This method will scan for avaliable BLE devices for 10000ms.
+	*
+	* @param, enable trigger when to begin scanning
+	*/
     private void scanBLEDevice(final boolean enable) {
         if (enable) {
             if (mHandler != null) {
@@ -353,6 +405,9 @@ public class MainActivity extends AppCompatActivity {
         invalidateOptionsMenu();
     }
 
+	/**
+	* Adding intents to the gattServiceIntent
+	*/
     private static IntentFilter makeGattUpdateIntentFilter() {
         Log.d("debugFlow", "makeGattUpdateIntentFilter");
         final IntentFilter intentFilter = new IntentFilter();
@@ -361,8 +416,11 @@ public class MainActivity extends AppCompatActivity {
         return intentFilter;
     }
 
-    //Called from the Device scanning fragment, this will attempt to connect to the BLE device
-    public void ConnectDevice() {
+    /**
+	* Called from the Device scanning fragment, this will attempt to connect to the BLE device
+	* Then updates the connection status to CONNECTED
+    */
+	public void ConnectDevice() {
         if (mBluetoothBLEService != null) {
             if (mSelectedDevice != null) {
                 final boolean result = mBluetoothBLEService.connect(mSelectedDevice.getAddress());
@@ -376,13 +434,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+	/**
+	* Setting the current connection status to DISCONNECTED
+	*/
     public void DisconnectDevice() {
         //checking to make sure there isn't nothing to disconnect from
         CurrentConnectionStatus(ConnectStatus.DISCONNECTED);
     }
 
-    //this kills the device connection
-    public void DropDevice() {
+    /**
+	* This method will drop the device connection and update the connection status to DISCONNECTED
+    */
+	public void DropDevice() {
         //checking to make sure there isn't nothing to disconnect from
         if (mSelectedDevice != null) {
             //checking that device isn't connected already
@@ -397,34 +460,56 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+	/**
+	* This method will update the selected device, update the beacon fragment selected device text field
+	* and update the connection status to SELECTED
+	*/
     public void SelectDevice(BluetoothDevice device) {
         mSelectedDevice = device;
         beaconFragmentCommander.updateSelectedDeviceParams(mSelectedDevice);
         CurrentConnectionStatus(ConnectStatus.SELECTED);
     }
 
+	/**
+	* This method will unselect the device and ensure the device is disconnected before unselecting
+	* also update the connection status to EMPTY
+	*/
     public void UnselectDevice() {
         //make sure the device isn't already connected, otherwise disconnect
         if (!mConnectStatus.equals(ConnectStatus.SELECTED))
             mBluetoothBLEService.disconnect();
 
+		//clearing the selectedDevice
         mSelectedDevice = null;
         beaconFragmentCommander.updateSelectedDeviceParams(mSelectedDevice);
         CurrentConnectionStatus(ConnectStatus.EMPTY);
     }
 
+	/**
+	* Updating the connection status to DEPLOYED
+	*/
     public void DeployDevice() {
         CurrentConnectionStatus(ConnectStatus.DEPLOYED);
     }
 
+	/**
+	* Updating the connection status to CONNECTED
+	*/ 
     public void UndeployDevice() {
         CurrentConnectionStatus(ConnectStatus.CONNECTED);
     }
 
+	/**
+	* Updating the connection statis to TETHERED
+	*/
     public void TetherDevice() {
         CurrentConnectionStatus(ConnectStatus.TETHERED);
     }
 
+	/**
+	* Dismissing the connection status
+	* if device connected, then change to DEPLOYED otherwise DISCONNECTED
+	*/
     public void DismissTether() {
         if (mConnect)
             CurrentConnectionStatus(ConnectStatus.DEPLOYED);
@@ -432,10 +517,21 @@ public class MainActivity extends AppCompatActivity {
             CurrentConnectionStatus(ConnectStatus.DISCONNECTED);
     }
 
+	/**
+	* Factory toast maker
+	*
+	* @param condiment, a string with the toast message
+	*/
     public void toastMaker(String condiment) {
         Toast.makeText(this, condiment, Toast.LENGTH_SHORT).show();
     }
 
+	/**
+	* This method updates the connection status, and updates the string and images for the beacon fragment
+	* depending on what the connection status was updated to.
+	*
+	* @param status, the current status for the machine to be updated to
+	*/
     public void CurrentConnectionStatus(ConnectStatus status) {
         String state = "";
 

@@ -34,6 +34,7 @@ public class SampleGattAttributes {
         attributes.put(HEART_RATE_MEASUREMENT, "Heart Rate Measurement");
         attributes.put("00002a29-0000-1000-8000-00805f9b34fb", "Manufacturer Name String");
 
+		//additional Gatt Characteristics for eFloat
         attributes.put("6e400001-b5a3-f393-e0a9-e50e24dcca9e", "E-Float data");
         attributes.put("6e400003-b5a3-f393-e0a9-e50e24dcca9e", "E-Float heart beat");
     }

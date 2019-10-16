@@ -11,7 +11,12 @@
 #include <Adafruit_LittleFS.h>
 #include <InternalFileSystem.h>
 
-const int buttonPin = 15;
+const int buttonPin = A0;
+int buttonState = 0;
+int prevButtonState = 0;
+bool conStopped = false;
+bool wasConnected = false;
+uint16_t conn_id = 0;
 
 // BLE Service
 BLEDfu  bledfu;  // OTA DFU service
@@ -19,8 +24,18 @@ BLEDis  bledis;  // device information
 BLEUart bleuart; // uart over ble
 BLEBas  blebas;  // battery
 
-int textBeat=0;
-int buttonState=0;
+uint8_t textBeat=0;
+
+/**
+* <h1>e_Float beacon software for BLE Adafruit devices</h1>
+* This software is used to run the beacon software system, this code is an adaped version
+* of an example provided by Adafruit to include connection and disconnect functionality driven
+* by a button press.
+*	
+* @author David Fitzsimmons
+* @version 1.2
+* @since 2019-9-28
+*/
 
 void setup()
 {
@@ -38,11 +53,14 @@ void setup()
   Bluefruit.configPrphBandwidth(BANDWIDTH_MAX);
 
   Bluefruit.begin();
-  Bluefruit.setTxPower(4);    // Check bluefruit.h for supported values
+  //supported tx_power values
+  //-40dBm, -20dBm, -16dBm, -12dBm, -16dBm, -12dBm, -8dBm, -4dBm, 0dBm, +3dBm and +4dBm
+  Bluefruit.setTxPower(4);    
   Bluefruit.setName("eFloat");
-  //Bluefruit.setName(getMcuUniqueID()); // useful testing with multiple central connections
   Bluefruit.Periph.setConnectCallback(connect_callback);
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
+
+  Serial.println(Bluefruit.getAppearance());
 
   // To be consistent OTA DFU should be added first if it exists
   bledfu.begin();
@@ -54,7 +72,7 @@ void setup()
 
   // Configure and Start BLE Uart Service
   bleuart.begin();
-
+  
   // Start BLE Battery Service
   blebas.begin();
   blebas.write(100);
@@ -62,11 +80,11 @@ void setup()
   // Set up and start advertising
   startAdv();
 
-  //initialize the float button
-  pinMode(buttonPin, INPUT);
-
   Serial.println("Please use Adafruit's Bluefruit LE app to connect in UART mode");
   Serial.println("Once connected, enter character(s) that you wish to send");
+
+  //initializing the pushButton pin as an input
+  pinMode(buttonPin, INPUT);
 }
 
 void startAdv(void)
@@ -91,14 +109,56 @@ void startAdv(void)
    * For recommended advertising interval
    * https://developer.apple.com/library/content/qa/qa1931/_index.html   
    */
-  Bluefruit.Advertising.restartOnDisconnect(true);
+  Bluefruit.Advertising.restartOnDisconnect(false);
   Bluefruit.Advertising.setInterval(32, 244);    // in unit of 0.625 ms
   Bluefruit.Advertising.setFastTimeout(30);      // number of seconds in fast mode
   Bluefruit.Advertising.start(0);                // 0 = Don't stop advertising after n seconds  
 }
 
-void loop()
+/**
+ * stopping the BLE advertising process so the device cannot be rediscovered
+ */
+void stopAdv(void) 
 {
+  Serial.println("Stopping Advertisment...");
+  Bluefruit.Advertising.stop();
+  if (!Bluefruit.Advertising.isRunning()) 
+  {
+    Serial.println("Advertising successfully stopped");  
+  }
+}
+
+/**
+ * stopping the BLE connection, forcing the device to disconnect from the beacon
+ */
+void stopCon(void) 
+{
+  Serial.println("Stopping Connection...");
+  Bluefruit.disconnect(conn_id);
+  if (!Bluefruit.connected())
+  {
+    Serial.println("device successfully disconnected");  
+  }  
+  else
+  {
+    Serial.println("device failed to disconnect");  
+  }
+}
+
+/**
+ * procedure to restart advertising
+ */
+void restartAdv(void)
+{
+  Serial.println("Restarting Advertising");
+  Bluefruit.Advertising.start(0);  
+}
+
+void loop()
+{ 
+  //reading the state of the pushbutton pin
+  buttonState = digitalRead(buttonPin);
+  
   // Forward data from HW Serial to BLEUART
   while (Serial.available())
   {
@@ -117,42 +177,47 @@ void loop()
     ch = (uint8_t) bleuart.read();
     Serial.write(ch);
 
-   }
-
-  if ( Bluefruit.Periph.connected() )
-  {
-    
-       textBeat++;
-     
-      if(textBeat > 100)
-        {
-          textBeat = 0;
-        }
-        delay(1000);
-        bleuart.print(textBeat);
-        Serial.println(textBeat);
   }
 
-  buttonState = digitalRead(buttonPin);
-
-  if (buttonState == HIGH) {
-    Serial.println("Button On");
-  } else {
-    Serial.println("Button Off");
+  //reading the button input and the disconnected the device from the host
+  if (buttonState == HIGH && buttonState != prevButtonState) {
+    prevButtonState = buttonState;
+    Serial.println("button pressed");
+    if (Bluefruit.Periph.connected()) 
+    {    
+      stopAdv();
+      stopCon();
+      conStopped = true;
+    }
+  } 
+  else if (buttonState == LOW && buttonState != prevButtonState) 
+  {
+    prevButtonState = buttonState;
+    Serial.println("button released");
+    if (conStopped) 
+    {
+      restartAdv();
+      conStopped = false;  
+    }
   }
 }
 
 // callback invoked when central connects
 void connect_callback(uint16_t conn_handle)
 {
-  // Get the reference to current connection
-  BLEConnection* connection = Bluefruit.Connection(conn_handle);
+  //prevent the device from reconnecting while the conStopped button is triggered
+  if (!conStopped) {
+    // Get the reference to current connection
+    BLEConnection* connection = Bluefruit.Connection(conn_handle);
+  
+    char central_name[32] = { 0 };
+    connection->getPeerName(central_name, sizeof(central_name));
+  
+    Serial.print("Connected to ");
+    Serial.println(central_name);
+  }
 
-  char central_name[32] = { 0 };
-  connection->getPeerName(central_name, sizeof(central_name));
-
-  Serial.print("Connected to ");
-  Serial.println(central_name);
+  conn_id = conn_handle;
 }
 
 /**
@@ -165,6 +230,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason)
   (void) conn_handle;
   (void) reason;
 
-  Serial.println();
-  Serial.print("Disconnected, reason = 0x"); Serial.println(reason, HEX);
+  Serial.println(conn_handle);
+  Serial.print("Disconnected, reason = 0x"); 
+  Serial.println(reason, HEX);
 }
